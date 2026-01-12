@@ -1,5 +1,7 @@
 import customtkinter as ctk
 from tkinter import messagebox
+import plus
+
 
 # 设置全局主题
 ctk.set_appearance_mode("dark")  # 开启深色模式
@@ -68,7 +70,33 @@ class CalculatorApp(ctk.CTk):
             "success": ("#1dd1a1", "#10ac84"), # 等号
             "normal": ("#576574", "#222f3e")   # 数字
         }
-        
+        def on_button_click(self, char):
+        """处理按钮点击逻辑"""
+        if char == 'C':
+            self.current_value = ""
+            self.update_display("0")
+        elif char == '=':
+            # 简单的演示：如果是加法，调用外部模块
+            if "+" in self.current_value:
+                self.handle_plus_logic()
+            else:
+                self.calculate() # 原有的乘除逻辑
+        # ... (其余逻辑不变) ...
+
+    def handle_plus_logic(self):
+        """专门处理加法的逻辑，调用 plus.py"""
+        try:
+            # 简单切割字符串，例如 "12+34" 切割成 ["12", "34"]
+            parts = self.current_value.split('+')
+            if len(parts) == 2:
+                # <--- 2. 调用 plus.py 中的函数
+                res = plus.perform_addition(parts[0], parts[1])
+                self.current_value = res
+                self.update_display(res)
+            else:
+                self.update_display("Format error")
+        except Exception:
+            self.update_display("Error")
         btn = ctk.CTkButton(
             self.button_frame,
             text=text,
