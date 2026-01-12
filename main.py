@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from tkinter import messagebox
-import plus
+from utils import plus
 
 
 # 设置全局主题
