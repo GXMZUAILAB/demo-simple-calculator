@@ -6,35 +6,24 @@ class CalculatorModel:
         pass
 
     def safe_parse_and_compute(self, expression, is_hex=False):
-        """使用AST语法树解析计算，支持浮点和十六进制"""
+        """使用AST语法树解析计算"""
         try:
             # 预处理：十六进制转换
             if is_hex:
-                # 将十六进制字符串转换为十进制整数
-                def hex_to_decimal(match):
-                    hex_str = match.group(0)
-                    return str(int(hex_str, 16))
-                
-                # 替换所有十六进制数为十进制数
-                expression = re.sub(r'[0-9A-Fa-f]+', hex_to_decimal, expression)
+                expression = re.sub(r'[0-9A-Fa-f]+', 
+                                lambda m: str(int(m.group(0), 16)), 
+                                expression)
             
             # 构建AST语法树
             tree = ast.parse(expression, mode='eval')
             
-            # 自定义访问器类
-            class SafeEvaluator(ast.NodeVisitor):
-                def __init__(self):
-                    self.result = None
-                
-                def visit_Expression(self, node):
-                    self.result = self.visit(node.body)
-                
-                def visit_Num(self, node):
+            # 本地递归函数（不是类方法，只是函数内的局部函数）
+            def eval_node(node):
+                if isinstance(node, ast.Num):
                     return node.n
-                
-                def visit_BinOp(self, node):
-                    left = self.visit(node.left)
-                    right = self.visit(node.right)
+                elif isinstance(node, ast.BinOp):
+                    left = eval_node(node.left)
+                    right = eval_node(node.right)
                     
                     if isinstance(node.op, ast.Add):
                         return left + right
@@ -45,31 +34,18 @@ class CalculatorModel:
                     elif isinstance(node.op, ast.Div):
                         if right == 0:
                             raise ZeroDivisionError("除数不能为零")
-                        # 十六进制模式下使用整数除，普通模式使用浮点除
-                        if is_hex:
-                            return left // right
-                        else:
-                            return left / right
-                    else:
-                        raise ValueError(f"不支持的运算符: {type(node.op).__name__}")
-                
-                def visit_UnaryOp(self, node):
-                    operand = self.visit(node.operand)
+                        return left // right if is_hex else left / right
+                    raise ValueError("不支持的运算符")
+                elif isinstance(node, ast.UnaryOp):
+                    operand = eval_node(node.operand)
                     if isinstance(node.op, ast.UAdd):
                         return +operand
                     elif isinstance(node.op, ast.USub):
                         return -operand
-                    else:
-                        raise ValueError(f"不支持的运算符: {type(node.op).__name__}")
-                
-                def generic_visit(self, node):
-                    raise ValueError(f"不支持的表达式类型: {type(node).__name__}")
+                    raise ValueError("不支持的运算符")
+                raise ValueError("不支持的表达式类型")
             
-            # 执行计算
-            evaluator = SafeEvaluator()
-            evaluator.visit(tree)
-            
-            return evaluator.result
+            return eval_node(tree.body)
             
         except ZeroDivisionError:
             raise
