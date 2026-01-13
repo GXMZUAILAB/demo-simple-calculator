@@ -29,6 +29,11 @@ class CalculatorModel:
                 def visit_Expression(self, node):
                     self.result = self.visit(node.body)
                 
+                # --- 关键修复：兼容 Python 3.8+ ---
+                def visit_Constant(self, node):
+                    return node.value
+
+                # 兼容旧版本 Python (3.7及以下)
                 def visit_Num(self, node):
                     return node.n
                 
@@ -74,6 +79,7 @@ class CalculatorModel:
         except ZeroDivisionError:
             raise
         except Exception as e:
+            # 这里的 e 会包含具体错误信息，方便调试（例如 '不支持的表达式类型'）
             raise ValueError(f"表达式解析错误: {str(e)}")
 
     def evaluate(self, expression, mode):
