@@ -1,63 +1,80 @@
 import re
+import ast
 
 class CalculatorModel:
     def __init__(self):
         pass
 
     def safe_parse_and_compute(self, expression, is_hex=False):
-        """核心计算逻辑，支持浮点和十六进制"""
-        if is_hex:
-            tokens_raw = re.findall(r'[0-9A-Fa-f]+|[-+*/]', expression)
-        else:
-            tokens_raw = re.findall(r'\d+\.?\d*|[-+*/]', expression)
-        
-        tokens = []
-        for t in tokens_raw:
-            if t in "+-*/":
-                tokens.append(t)
-            else:
-                if is_hex:
-                    tokens.append(int(t, 16))
-                else:
-                    tokens.append(float(t))
-
-        if not tokens: return 0
-
-        # 处理乘除
-        stack = []
-        i = 0
-        while i < len(tokens):
-            token = tokens[i]
-            if token == '*' or token == '/':
-                if not stack: raise ValueError
-                prev_val = stack.pop()
-                if i + 1 >= len(tokens): raise ValueError # 防止溢出
-                next_val = tokens[i+1]
+        """使用AST语法树解析计算，支持浮点和十六进制"""
+        try:
+            # 预处理：十六进制转换
+            if is_hex:
+                # 将十六进制字符串转换为十进制整数
+                def hex_to_decimal(match):
+                    hex_str = match.group(0)
+                    return str(int(hex_str, 16))
                 
-                if token == '*':
-                    res = prev_val * next_val
-                else:
-                    if next_val == 0: raise ZeroDivisionError
-                    res = prev_val // next_val if is_hex else prev_val / next_val
-                
-                stack.append(res)
-                i += 2
-            else:
-                stack.append(token)
-                i += 1
-
-        # 处理加减
-        if not stack: return 0
-        result = stack[0]
-        i = 1
-        while i < len(stack):
-            op = stack[i]
-            val = stack[i+1]
-            if op == '+': result += val
-            elif op == '-': result -= val
-            i += 2
+                # 替换所有十六进制数为十进制数
+                expression = re.sub(r'[0-9A-Fa-f]+', hex_to_decimal, expression)
             
-        return result
+            # 构建AST语法树
+            tree = ast.parse(expression, mode='eval')
+            
+            # 自定义访问器类
+            class SafeEvaluator(ast.NodeVisitor):
+                def __init__(self):
+                    self.result = None
+                
+                def visit_Expression(self, node):
+                    self.result = self.visit(node.body)
+                
+                def visit_Num(self, node):
+                    return node.n
+                
+                def visit_BinOp(self, node):
+                    left = self.visit(node.left)
+                    right = self.visit(node.right)
+                    
+                    if isinstance(node.op, ast.Add):
+                        return left + right
+                    elif isinstance(node.op, ast.Sub):
+                        return left - right
+                    elif isinstance(node.op, ast.Mult):
+                        return left * right
+                    elif isinstance(node.op, ast.Div):
+                        if right == 0:
+                            raise ZeroDivisionError("除数不能为零")
+                        # 十六进制模式下使用整数除，普通模式使用浮点除
+                        if is_hex:
+                            return left // right
+                        else:
+                            return left / right
+                    else:
+                        raise ValueError(f"不支持的运算符: {type(node.op).__name__}")
+                
+                def visit_UnaryOp(self, node):
+                    operand = self.visit(node.operand)
+                    if isinstance(node.op, ast.UAdd):
+                        return +operand
+                    elif isinstance(node.op, ast.USub):
+                        return -operand
+                    else:
+                        raise ValueError(f"不支持的运算符: {type(node.op).__name__}")
+                
+                def generic_visit(self, node):
+                    raise ValueError(f"不支持的表达式类型: {type(node).__name__}")
+            
+            # 执行计算
+            evaluator = SafeEvaluator()
+            evaluator.visit(tree)
+            
+            return evaluator.result
+            
+        except ZeroDivisionError:
+            raise
+        except Exception as e:
+            raise ValueError(f"表达式解析错误: {str(e)}")
 
     def evaluate(self, expression, mode):
         """对外暴露的计算接口，处理彩蛋和格式化"""
