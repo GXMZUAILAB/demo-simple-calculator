@@ -50,6 +50,7 @@ class CalculatorModel:
         except ZeroDivisionError:
             raise
         except Exception as e:
+            # 这里的 e 会包含具体错误信息，方便调试（例如 '不支持的表达式类型'）
             raise ValueError(f"表达式解析错误: {str(e)}")
 
     def evaluate(self, expression, mode):

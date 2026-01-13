@@ -13,7 +13,7 @@ class CalculatorView(ctk.CTk):
         # --- 1. 顶部模式切换 ---
         self.mode_segment = ctk.CTkSegmentedButton(
             self, 
-            values=["标准模式", "程序员(Hex)"], 
+            values=["标准模式", "程序员"], 
             command=self.on_mode_segment_click
         )
         self.mode_segment.pack(pady=(10, 5))
