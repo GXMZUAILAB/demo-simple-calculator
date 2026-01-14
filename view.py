@@ -7,13 +7,13 @@ class CalculatorView(ctk.CTk):
 
         # --- 窗口基础设置 ---
         self.title("简易计算器")
-        self.geometry("340x520") 
+        self.geometry("400x520")  # 稍微加宽以适应更多按钮
         self.resizable(False, False)
 
         # --- 1. 顶部模式切换 ---
         self.mode_segment = ctk.CTkSegmentedButton(
             self, 
-            values=["标准模式", "程序员"], 
+            values=["标准模式", "程序员"],
             command=self.on_mode_segment_click
         )
         self.mode_segment.pack(pady=(10, 5))
@@ -79,19 +79,17 @@ class CalculatorView(ctk.CTk):
         self._create_grid(buttons, cols=4)
 
     def setup_programmer_buttons(self):
+        """程序员模式：按照指定布局排列按钮"""
         self.clear_button_frame()
+        # 按照指定布局排列
         buttons = [
-            ('A', 0, 0, "hex"), ('B', 0, 1, "hex"), 
-            ('CLEAR', 0, 2, "danger"), ('Backspace', 0, 3, "action", 2), ('/', 0, 5, "action"),
-            ('C', 1, 0, "hex"), ('D', 1, 1, "hex"), 
-            ('7', 1, 2, "normal"), ('8', 1, 3, "normal"), ('9', 1, 4, "normal"), ('*', 1, 5, "action"),
-            ('E', 2, 0, "hex"), ('F', 2, 1, "hex"), 
-            ('4', 2, 2, "normal"), ('5', 2, 3, "normal"), ('6', 2, 4, "normal"), ('-', 2, 5, "action"),
-            ('(', 3, 0, "hex"), (')', 3, 1, "hex"), 
-            ('1', 3, 2, "normal"), ('2', 3, 3, "normal"), ('3', 3, 4, "normal"), ('+', 3, 5, "action"),
-            ('0', 4, 2, "normal", 3), ('=', 4, 5, "success")
+            ('CLEAR', 0, 0, "danger"), ('Backspace', 0, 1, "action"), ('<<', 0, 2, "action"), ('>>', 0, 3, "action"),
+            ('0', 1, 0, "normal"), ('1', 1, 1, "normal"), ('+', 1, 2, "action"), ('-', 1, 3, "action"),
+            ('(', 2, 0, "normal"), (')', 2, 1, "normal"), ('*', 2, 2, "action"), ('/', 2, 3, "action"),
+            ('NOT', 3, 0, "hex"), ('AND', 3, 1, "hex"), ('OR', 3, 2, "hex"), ('XOR', 3, 3, "hex"),
+            ('=', 4, 0, "success", 4)
         ]
-        self._create_grid(buttons, cols=6)
+        self._create_grid(buttons, cols=4)
 
     def _create_grid(self, buttons, cols):
         for i in range(cols):
@@ -123,7 +121,6 @@ class CalculatorView(ctk.CTk):
             corner_radius=8,
             font=("Inter", 18, "bold"),
             fg_color=colors.get(style, colors["normal"]),
-            # 关键：这里调用控制器的处理函数
             command=lambda t=text: self.controller.handle_button_click(t) if self.controller else None
         )
         btn.grid(row=row, column=col, columnspan=colspan, padx=3, pady=3, sticky="nsew")

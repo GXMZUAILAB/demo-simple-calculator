@@ -47,7 +47,7 @@ class CalculatorController:
             # 程序员模式下的退格需要更新预览
             sub_text = ""
             if self.mode == "Programmer" and self.current_value:
-                sub_text = self.model.convert_hex_preview(self.current_value)
+                sub_text = self.model.convert_binary_preview(self.current_value)
             
             self.view.update_display(display_text, sub_text)
             
@@ -60,7 +60,7 @@ class CalculatorController:
                 if self.current_value[-1] in "+-*/": return 
             
             # 2. 程序员模式禁用特定字符
-            if self.mode == "Programmer" and char in [".", "(", ")"]:
+            if self.mode == "Programmer" and char in ["."]:
                 return
 
             self.current_value += str(char)
@@ -68,6 +68,6 @@ class CalculatorController:
             # 3. 实时预览逻辑
             sub_text = None
             if self.mode == "Programmer" and char not in "+-*/":
-                sub_text = self.model.convert_hex_preview(self.current_value)
+                sub_text = self.model.convert_binary_preview(self.current_value)
 
             self.view.update_display(self.current_value, sub_text)
