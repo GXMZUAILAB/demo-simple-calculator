@@ -143,7 +143,7 @@ class CalculatorModel:
         
         raise ValueError(f"不支持的函数: {func_name}")
 
-    # ================= 结果格式化 =================
+    # ================= 结果格式化 ================
 
     def _format_result(self, result, is_binary: bool, original: str = "") -> tuple[str, str]:
         """格式化结果"""
