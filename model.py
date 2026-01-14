@@ -26,8 +26,6 @@ class CalculatorModel:
 
     def evaluate(self, expr: str, mode: str) -> tuple[str, str]:
         """计算表达式并返回结果"""
-        if expr == '233':
-            return "哈哈哈", ""
         if not expr:
             return "", ""
 
