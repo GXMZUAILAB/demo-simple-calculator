@@ -4,12 +4,10 @@ class CalculatorController:
         self.view = view
         
         # 应用状态
-        self.current_value = ""
         self.mode = "Standard" # "Standard" or "Programmer"
 
     def handle_mode_change(self, new_mode_name):
         """处理模式切换"""
-        self.current_value = ""
         self.view.update_display("0", "")
         
         if new_mode_name == "标准模式":
@@ -42,9 +40,7 @@ class CalculatorController:
                 return
             # 调用 Model 进行计算，直接使用输入框的文本
             result_str, sub_label_str = self.model.evaluate(expr, self.mode)
-            # 保存结果到 current_value 以便后续可能使用
-            self.current_value = result_str
-            self.view.update_display(self.current_value, sub_label_str)
+            self.view.update_display(result_str, sub_label_str)
             return
 
         if char == 'Backspace':
