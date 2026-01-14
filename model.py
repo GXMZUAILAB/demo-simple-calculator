@@ -150,8 +150,14 @@ class CalculatorModel:
     def _format_result(self, result, is_binary: bool, original: str = "") -> tuple[str, str]:
         """格式化结果"""
         if not is_binary:
-            return self._format_std(result), ""
+            # 标准模式格式化
+            if isinstance(result, float):
+                result = round(result, 10)
+                if result.is_integer():
+                    return str(int(result)), ""
+            return str(result), ""
 
+        # 二进制模式格式化
         int_res = int(result)
         
         # 确定目标显示长度
@@ -167,11 +173,3 @@ class CalculatorModel:
                 bin_str = bin_str.zfill(target)
         
         return bin_str or "0", f"DEC: {int_res}"
-
-    def _format_std(self, result):
-        """格式化标准结果"""
-        if isinstance(result, float):
-            result = round(result, 10)
-            if result.is_integer():
-                return str(int(result))
-        return str(result)
