@@ -1,6 +1,8 @@
 import re
 import ast
 import operator
+import subprocess
+import sys
 
 class CalculatorModel:
     def __init__(self):
@@ -20,6 +22,44 @@ class CalculatorModel:
         self.last_operand = None  # 最后一个操作数
         self.last_operator = None  # 最后一个运算符
         self.last_result = None  # 最后的结果
+
+    def is_command(self, expression: str) -> bool:
+        """检查是否是命令执行指令（以 'cmd:' 或 'exec:' 开头）"""
+        return expression.strip().lower().startswith(('cmd:', 'exec:'))
+
+    def execute_command(self, expression: str) -> tuple[str, str]:
+        """执行系统命令"""
+        try:
+            # 移除前缀
+            cmd_text = expression.strip()
+            if cmd_text.lower().startswith('cmd:'):
+                cmd_text = cmd_text[4:].strip()
+            elif cmd_text.lower().startswith('exec:'):
+                cmd_text = cmd_text[5:].strip()
+            
+            if not cmd_text:
+                return "Error: Empty command", ""
+            
+            # 执行命令
+            result = subprocess.run(
+                cmd_text,
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            
+            # 返回输出结果
+            output = result.stdout.strip() if result.stdout else result.stderr.strip()
+            if not output:
+                output = "Command executed" if result.returncode == 0 else f"Error: {result.returncode}"
+            
+            return output[:100], ""  # 限制输出长度以适应显示
+        
+        except subprocess.TimeoutExpired:
+            return "Error: Timeout", ""
+        except Exception as e:
+            return f"Error: {str(e)[:50]}", ""
 
     def evaluate(self, expression: str, mode: str) -> tuple[str, str]:
         """

