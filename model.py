@@ -170,4 +170,24 @@ class CalculatorModel:
             if target and len(bin_str) < target:
                 bin_str = bin_str.zfill(target)
         
-        return bin_str or "0", f"DEC: {int_res}"
+        # 添加4位分组
+        grouped_bin = self._group_binary_by_four(bin_str)
+        
+        return grouped_bin or "0", f"DEC: {int_res}"
+    
+    def _group_binary_by_four(self, bin_str: str) -> str:
+        """将二进制字符串按4位分组"""
+        # 确保二进制字符串不为空
+        if not bin_str:
+            return "0"
+        
+        # 补零使长度为4的倍数
+        remainder = len(bin_str) % 4
+        if remainder != 0:
+            bin_str = '0' * (4 - remainder) + bin_str
+        
+        # 每4位一组
+        groups = [bin_str[i:i+4] for i in range(0, len(bin_str), 4)]
+        
+        # 连接各组，用空格分隔
+        return ' '.join(groups)

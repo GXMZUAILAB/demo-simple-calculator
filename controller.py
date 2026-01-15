@@ -61,7 +61,7 @@ class CalculatorController:
             # 程序员模式下的退格需要更新预览
             sub_text = ""
             if self.mode == "Programmer" and display_text and display_text != "0":
-                sub_text = self.model.convert_hex_preview(display_text)
+                sub_text = self.model.convert_binary_preview(display_text)
 
             self.view.update_display(display_text, sub_text)
             return
