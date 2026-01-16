@@ -7,7 +7,7 @@ class CalculatorView(ctk.CTk):
 
         # --- 窗口基础设置 ---
         self.title("简易计算器")
-        self.geometry("400x520")  # 稍微加宽以适应更多按钮
+        self.geometry("340x520")
         self.resizable(False, False)
 
         # --- 1. 顶部模式切换 ---
@@ -81,14 +81,13 @@ class CalculatorView(ctk.CTk):
     def setup_programmer_buttons(self):
         """程序员模式：按照指定布局排列按钮"""
         self.clear_button_frame()
-        # 按照指定布局排列
         buttons = [
-            ('CLEAR', 0, 0, "danger"), ('Backspace', 0, 1, "action"), ('<<', 0, 2, "action"), ('>>', 0, 3, "action"),
-            ('0', 1, 0, "normal"), ('1', 1, 1, "normal"), ('+', 1, 2, "action"), ('-', 1, 3, "action"),
-            ('(', 2, 0, "normal"), (')', 2, 1, "normal"), ('*', 2, 2, "action"), ('/', 2, 3, "action"),
-            ('NOT', 3, 0, "hex"), ('AND', 3, 1, "hex"), ('OR', 3, 2, "hex"), ('XOR', 3, 3, "hex"),
-            ('=', 4, 0, "success", 4)
-        ]
+            ('CLEAR', 0, 0, "danger"), ('Backspace', 0, 1, "action", 2), ('AND', 0, 3, "action"),
+            ('<<', 1, 0, "action"), ('>>', 1, 1, "action"), ('+', 1, 2, "action"), ('NOT', 1, 3, "action"),
+            ('0', 2, 0, "normal"), ('1', 2, 1, "normal"), ('-', 2, 2, "action"), ('OR', 2, 3, "action"),
+            ('(', 3, 0, "normal"), (')', 3, 1, "normal"), ('*', 3, 2, "action"), ('XOR', 3, 3, "action"),
+            ('/', 4, 2, "action"), ('=', 4, 3, "success")
+    ]
         self._create_grid(buttons, cols=4)
 
     def _create_grid(self, buttons, cols):

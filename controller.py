@@ -1,3 +1,5 @@
+import re
+
 class CalculatorController:
     def __init__(self, model, view):
         self.model = model
@@ -49,9 +51,15 @@ class CalculatorController:
                 self.view.update_display(result_str, sub_label_str)
                 return
             
-            # 调用 Model 进行计算
-            result_str, sub_label_str = self.model.evaluate(expr, self.mode)
-            self.view.update_display(result_str, sub_label_str)
+            try:
+                raw_result = self.model.evaluate(expr, self.mode)
+                result_str, sub_label_str = self.format_result(raw_result, expr)
+                # 确保结果不为空
+                if not result_str or result_str == "":
+                    result_str = "Error"
+                self.view.update_display(result_str, sub_label_str)
+            except Exception as e:
+                    self.view.update_display(f"err: {str(e)}", "")
             return
             
         if char == 'Backspace':
@@ -88,3 +96,55 @@ class CalculatorController:
             sub_text = self.model.convert_binary_preview(new_text if new_text != "0" else "")
 
         self.view.update_display(new_text, sub_text)
+    
+    def format_result(self, raw_result, original_expr: str = ""):
+        """完全合并的格式化函数"""
+        if raw_result is None:
+            return "Error", ""
+        
+        # 标准模式
+        if self.mode == "Standard":
+            if isinstance(raw_result, float):
+                raw_result = round(raw_result, 10)
+                if raw_result.is_integer():
+                    return f"{int(raw_result)}", ""
+                return f"{raw_result:.10f}".rstrip('0').rstrip('.'), ""
+            return f"{raw_result}", ""
+        
+        # 程序员模式
+        try:
+            # raw_result可能是字符串（二进制结果）或数字
+            if isinstance(raw_result, str):
+                # 如果是二进制字符串，先转换为十进制
+                value = int(raw_result, 2) if raw_result else 0
+            else:
+                # 如果是数字，直接使用
+                value = int(raw_result)
+        except:
+            return "Error", ""
+        
+        # 计算位宽
+        binary_nums = re.findall(r'[01]+', original_expr)
+        if binary_nums:
+            max_bits = max(len(n) for n in binary_nums)
+            val_bits = value.bit_length() if value else 1
+            bits = max(max_bits, val_bits)
+        else:
+            bits = value.bit_length() if value else 1
+        
+        bits = ((bits + 3) // 4) * 4
+        
+        # 生成二进制
+        if value < 0:
+            mask = (1 << bits) - 1
+            bin_str = bin(value & mask)[2:].zfill(bits)
+        else:
+            bin_str = bin(value)[2:].zfill(bits)
+        
+        # 分组
+        rem = len(bin_str) % 4
+        if rem:
+            bin_str = '0' * (4 - rem) + bin_str
+        
+        groups = [bin_str[i:i+4] for i in range(0, len(bin_str), 4)]
+        return ' '.join(groups), f"DEC: {value}"
