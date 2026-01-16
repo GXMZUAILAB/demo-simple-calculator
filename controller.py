@@ -16,7 +16,7 @@ class CalculatorController:
             self.view.setup_standard_buttons()
         else:
             self.mode = "Programmer"
-            self.view.resize_window(500, 520)
+            self.view.resize_window(340, 520)
             self.view.setup_programmer_buttons()
 
     def handle_button_click(self, char):
