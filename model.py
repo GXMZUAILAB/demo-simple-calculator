@@ -34,6 +34,7 @@ class CalculatorModel:
             raise ValueError(f"{str(e)}")
 
     def _binary_calc(self, expr: str):
+        """二进制计算 - 返回有符号值"""
         expr = expr.replace(' ', '')
         if not expr:
             return None
@@ -63,26 +64,16 @@ class CalculatorModel:
             # 转换剩余二进制数
             expr = re.sub(r'\b[01]+\b', lambda m: str(int(m.group(), 2)), expr)
             
-            # 计算
-            decimal_result = self._eval_ast(expr, True)
-            if decimal_result is None:
+            # 计算得到有符号结果
+            signed_result = self._eval_ast(expr, True)
+            if signed_result is None:
                 return None
             
-            # 转换为整数
-            decimal_result = int(decimal_result)
+            # 转换为整数（直接返回有符号值）
+            signed_result = int(signed_result)
             
-            # 处理负数
-            if decimal_result < 0:
-                decimal_result = decimal_result & 0xFFFFFFFF
-            
-            # 转为二进制
-            binary_result = bin(decimal_result)[2:]
-            
-            # 补零到4的倍数
-            while len(binary_result) % 4 != 0:
-                binary_result = '0' + binary_result
-                
-            return binary_result
+            # 返回有符号值，而不是二进制字符串
+            return signed_result
             
         except Exception as e:
             raise ValueError(f"{str(e)}")
@@ -181,6 +172,7 @@ class CalculatorModel:
         raise ValueError(f"not support: {type(node).__name__}")
 
     def convert_binary_preview(self, bin_str: str) -> str:
+        """二进制预览"""
         if not bin_str:
             return ""
         try:
