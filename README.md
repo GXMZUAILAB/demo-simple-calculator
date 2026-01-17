@@ -43,6 +43,9 @@ python main.py
 - `controller.py`: 控制器，协调视图与模型之间的交互。
 - `formatter.py`: 结果格式化工具。
 
+## 演示
+![演示](resources/演示.gif)
+
 ## 📄 许可证
 
 本项目采用 [MIT License](LICENSE) 许可。
