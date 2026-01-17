@@ -1,8 +1,6 @@
 import re
 import ast
 import operator
-import subprocess
-import sys
 
 class CalculatorModel:
     def __init__(self):
@@ -11,16 +9,6 @@ class CalculatorModel:
             ast.Sub: operator.sub, 
             ast.Mult: operator.mul,
             ast.Div: operator.truediv,
-        }
-        # 支持的二元运算符映射
-        self._bin_ops = {
-            ast.Add: operator.add,
-            ast.Sub: operator.sub,
-            ast.Mult: operator.mul,
-            ast.Div: operator.truediv,
-        }
-        # 支持的一元运算符映射
-        self._unary_ops = {
             ast.UAdd: operator.pos,
             ast.USub: operator.neg,
             ast.BitAnd: operator.and_,
@@ -30,41 +18,21 @@ class CalculatorModel:
             ast.RShift: operator.rshift,
             ast.Invert: lambda x: ~x,
         }
-        # 存储最后一次的运算信息，用于重复运算
-        self.last_operand = None  # 最后一个操作数
-        self.last_operator = None  # 最后一个运算符
-        self.last_result = None  # 最后的结果
 
-    def evaluate(self, expression: str, mode: str) -> tuple[str, str]:
-        """
-        对外主接口：执行计算并返回 (显示文本, 辅助文本)
-        """
-        if not expression:
-            return "", ""
-
-        is_hex_mode = (mode == "Programmer")
+    def evaluate(self, expr: str, mode: str):
+        if not expr or expr.isspace():
+            return None
 
         try:
-            # 1. 核心计算
-            result = self._compute(expression, is_hex_mode)
-            
-            # 2. 结果格式化
-            return self._format_result(result, is_hex_mode)
-
+            if mode == "Programmer":
+                return self._binary_calc(expr)
+            else:
+                return self._decimal_calc(expr)
         except ZeroDivisionError:
-            return "Error: Div 0", ""
+            raise ZeroDivisionError("Div 0")
         except Exception as e:
-            return "Error", ""
-
-    def convert_hex_preview(self, hex_str: str) -> str:
-        """程序员模式实时预览"""
-        try:
-            if hex_str and re.fullmatch(r'[0-9A-Fa-f]+', hex_str):
-                return f"DEC: {int(hex_str, 16)}"
-        except ValueError:
-            pass
-        return ""
-
+            raise ValueError(f"{str(e)}")
+        
     def sort_numbers(self, expression: str, is_hex: bool = False) -> tuple[str, str]:
         """处理数值排序逻辑"""
         try:
@@ -104,7 +72,7 @@ class CalculatorModel:
         except Exception:
             # 如果包含非法字符无法排序，返回错误
             return "Error: Sort", ""
-
+        
     def convert_time(self, expression: str) -> tuple[str, str]:
         """处理时间转换逻辑
         支持格式：
@@ -144,69 +112,140 @@ class CalculatorModel:
         except (ValueError, IndexError):
             return "Error: Time", ""
 
-    # ================= 内部逻辑方法 =================
-
-    def _compute(self, expression: str, is_hex: bool):
-        """解析字符串并计算数值"""
-        if is_hex:
-            expression = self._preprocess_hex(expression)
-
+    def _binary_calc(self, expr: str):
+        """二进制计算 - 返回有符号值"""
+        expr = expr.replace(' ', '')
+        if not expr:
+            return None
+        
         try:
-            tree = ast.parse(expression, mode='eval')
-        except SyntaxError:
-            raise ValueError("语法错误")
+            # 规范化表达式
+            expr = expr.replace('<<', 'LSHIFT').replace('>>', 'RSHIFT')
+            
+            # 处理位运算
+            ops = ['AND', 'OR', 'XOR', 'LSHIFT', 'RSHIFT', 'NOT']
+            for op in ops:
+                if op == 'NOT':
+                    pattern = fr'NOT([01]+)'
+                    while True:
+                        match = re.search(pattern, expr)
+                        if not match:
+                            break
+                        expr = expr[:match.start()] + f'NOT({int(match.group(1), 2)})' + expr[match.end():]
+                else:
+                    pattern = fr'([01]+){op}([01]+)'
+                    while True:
+                        match = re.search(pattern, expr)
+                        if not match:
+                            break
+                        expr = expr[:match.start()] + f'{op}({int(match.group(1), 2)},{int(match.group(2), 2)})' + expr[match.end():]
+            
+            # 转换剩余二进制数
+            expr = re.sub(r'\b[01]+\b', lambda m: str(int(m.group(), 2)), expr)
+            
+            # 计算得到有符号结果
+            signed_result = self._eval_ast(expr, True)
+            if signed_result is None:
+                return None
+            
+            # 转换为整数（直接返回有符号值）
+            signed_result = int(signed_result)
+            
+            # 返回有符号值，而不是二进制字符串
+            return signed_result
+            
+        except Exception as e:
+            raise ValueError(f"{str(e)}")
 
-        return self._eval_node(tree.body, is_hex)
-
-    def _preprocess_hex(self, expression: str) -> str:
-        """将十六进制字符串替换为十进制字符串"""
-        return re.sub(
-            r'\b[0-9A-Fa-f]+\b', 
-            lambda m: str(int(m.group(0), 16)), 
-            expression
-        )
-
-    def _eval_node(self, node, is_hex: bool):
-        """递归遍历 AST 节点进行计算"""
-        if isinstance(node, ast.Constant):
-            return node.value
-
-        if isinstance(node, ast.BinOp):
-            left = self._eval_node(node.left, is_hex)
-            right = self._eval_node(node.right, is_hex)
-            op_type = type(node.op)
-
-            if op_type in self._bin_ops:
-                if op_type == ast.Div:
-                    if right == 0: raise ZeroDivisionError
-                    return left // right if is_hex else left / right
-                return self._bin_ops[op_type](left, right)
-
-        if isinstance(node, ast.UnaryOp):
-            operand = self._eval_node(node.operand, is_hex)
-            op_type = type(node.op)
-            if op_type in self._unary_ops:
-                return self._unary_ops[op_type](operand)
-
-        raise ValueError(f"不支持的语法节点: {type(node)}")
-
-    def _format_result(self, result, is_hex: bool) -> tuple[str, str]:
-        """将数值结果转换为 UI 显示所需的字符串"""
-        display_text = ""
-        sub_text = ""
-
-        if is_hex:
-            int_res = int(result)
-            display_text = f"{int_res:X}"
-            sub_text = f"DEC: {int_res}"
-        else:
+    def _decimal_calc(self, expr: str):
+        expr = expr.replace(' ', '')
+        if not expr:
+            return None
+        
+        try:
+            result = self._eval_ast(expr, False)
+            if result is None:
+                return None
+            
             if isinstance(result, float):
                 result = round(result, 10)
                 if result.is_integer():
-                    display_text = str(int(result))
-                else:
-                    display_text = str(result)
-            else:
-                display_text = str(result)
+                    return str(int(result))
+                result_str = f"{result:.10f}"
+                return result_str.rstrip('0').rstrip('.')
+            
+            return str(result)
+            
+        except Exception as e:
+            raise ValueError(str(e))
 
-        return display_text, sub_text
+    def _eval_ast(self, expr: str, is_binary: bool):
+        try:
+            tree = ast.parse(expr, mode='eval')
+            return self._eval_node(tree.body, is_binary)
+        except (SyntaxError, ValueError):
+            raise ValueError("expr err")
+
+    def _eval_node(self, node, is_binary: bool):
+        if isinstance(node, ast.Constant):
+            val = node.value
+            if isinstance(val, str):
+                val = float(val) if '.' in val else int(val)
+            return int(val) if is_binary and isinstance(val, float) else val
+        
+        elif isinstance(node, ast.BinOp):
+            left = self._eval_node(node.left, is_binary)
+            right = self._eval_node(node.right, is_binary)
+            op_type = type(node.op)
+            
+            if op_type not in self._operators:
+                raise ValueError(f"not support: {op_type.__name__}")
+            
+            if op_type == ast.Div and right == 0:
+                raise ZeroDivisionError("div 0")
+            
+            if op_type == ast.Div and is_binary:
+                return left // right
+            
+            return self._operators[op_type](left, right)
+        
+        elif isinstance(node, ast.UnaryOp):
+            operand = self._eval_node(node.operand, is_binary)
+            op_type = type(node.op)
+            
+            if op_type not in self._operators:
+                raise ValueError(f"not support: {op_type.__name__}")
+            
+            return self._operators[op_type](operand)
+        
+        elif isinstance(node, ast.Call):
+            if not isinstance(node.func, ast.Name):
+                raise ValueError("invalid syntax")
+            
+            func_name = node.func.id.upper()
+            
+            bitwise_funcs = {
+                'LSHIFT': operator.lshift,
+                'RSHIFT': operator.rshift,
+                'AND': operator.and_,
+                'OR': operator.or_,
+                'XOR': operator.xor,
+                'NOT': lambda x: ~x,
+            }
+            
+            if func_name not in bitwise_funcs:
+                raise ValueError(f"not support: {func_name}")
+            
+            args = [int(self._eval_node(arg, True)) for arg in node.args]
+            
+            if func_name == 'NOT':
+                if len(args) != 1:
+                    raise ValueError("NOT missing param")
+                return bitwise_funcs[func_name](args[0])
+            
+            if len(args) != 2:
+                raise ValueError(f"{func_name}missing param")
+            
+            return bitwise_funcs[func_name](args[0], args[1])
+        
+        raise ValueError(f"not support: {type(node).__name__}")

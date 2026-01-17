@@ -79,14 +79,27 @@ class CalculatorController:
                 if self.model.last_operator and self.model.last_operand is not None:
                     # 构造新的表达式：结果 + 运算符 + 操作数
                     new_expr = f"{current}{self.model.last_operator}{self.model.last_operand}"
-                    result_str, sub_label_str = self.model.evaluate(new_expr, self.mode)
-                    self.view.update_display(result_str, sub_label_str)
-                    # 保持 is_result_displayed 为 True，以便继续重复运算
+                    try:
+                        raw_result = self.model.evaluate(new_expr, self.mode)
+                        result_str, sub_label_str = self.format_result(raw_result, expr)
+                        # 确保结果不为空
+                        if not result_str or result_str == "":
+                            result_str = "Error"
+                        self.view.update_display(result_str, sub_label_str)
+                    except Exception as e:
+                            self.view.update_display(f"err: {str(e)}", "")
                     return
             
             # 调用 Model 进行计算，直接使用输入框的文本
-            result_str, sub_label_str = self.model.evaluate(expr, self.mode)
-            self.view.update_display(result_str, sub_label_str)
+            try:
+                raw_result = self.model.evaluate(expr, self.mode)
+                result_str, sub_label_str = self.format_result(raw_result, expr)
+                # 确保结果不为空
+                if not result_str or result_str == "":
+                    result_str = "Error"
+                self.view.update_display(result_str, sub_label_str)
+            except Exception as e:
+                    self.view.update_display(f"err: {str(e)}", "")
             
             # 提取表达式中的最后一个运算符和操作数
             self._extract_last_operation(expr)
@@ -103,7 +116,7 @@ class CalculatorController:
             # 程序员模式下的退格需要更新预览
             sub_text = ""
             if self.mode == "Programmer" and display_text and display_text != "0":
-                sub_text = self.model.convert_hex_preview(display_text)
+                sub_text = self.convert_binary_preview(display_text)
 
             self.view.update_display(display_text, sub_text)
             self.is_result_displayed = False
@@ -134,16 +147,15 @@ class CalculatorController:
         # 重置结果显示标记（用户开始输入新内容）
         self.is_result_displayed = False
 
-        # 实时预览（仅显示十六进制转换提示，不做计算）
+        # 实时预览
         sub_text = None
         if self.mode == "Programmer" and char not in "+-*/":
-            sub_text = self.model.convert_hex_preview(new_text if new_text != "0" else "")
+            sub_text = self.convert_binary_preview(new_text if new_text != "0" else "")
 
         self.view.update_display(new_text, sub_text)
 
     def _extract_last_operation(self, expression: str):
         """从表达式中提取最后一个运算符和操作数"""
-        import re
         
         # 使用正则表达式匹配最后一个运算符和其后的操作数
         # 模式：(数字或小数) (运算符) (数字或小数)
@@ -157,3 +169,74 @@ class CalculatorController:
             # 如果没有找到运算符，重置
             self.model.last_operand = None
             self.model.last_operator = None
+
+    def format_result(self, raw_result, original_expr: str = ""):
+        """格式化计算结果"""
+        if raw_result is None:
+            return "Error", ""
+        
+        # 标准模式
+        if self.mode == "Standard":
+            if isinstance(raw_result, float):
+                raw_result = round(raw_result, 10)
+                if raw_result.is_integer():
+                    return f"{int(raw_result)}", ""
+                return f"{raw_result:.10f}".rstrip('0').rstrip('.'), ""
+            return f"{raw_result}", ""
+        
+        # 程序员模式
+        try:
+            # raw_result 现在直接是有符号值（如 -1）
+            value = int(raw_result)
+            signed_value = value  # 保存原始有符号值用于预览
+            
+            # 计算需要显示的位数（基于输入表达式）
+            binary_nums = re.findall(r'[01]+', original_expr)
+            if binary_nums:
+                max_bits = max(len(n) for n in binary_nums)
+                # 对于负数，需要额外1位符号位
+                if value < 0:
+                    val_bits = abs(value).bit_length() + 1
+                else:
+                    val_bits = value.bit_length() if value else 1
+                bits = max(max_bits, val_bits)
+            else:
+                if value < 0:
+                    bits = abs(value).bit_length() + 1
+                else:
+                    bits = value.bit_length() if value else 1
+            
+            # 向上取整到4的倍数，但不超过32位
+            bits = ((bits + 3) // 4) * 4
+            bits = min(bits, 32)  # 最大32位
+            
+            # 关键修改：在format_result中进行 & 0xFFFFFFFF
+            if value < 0:
+                # 使用32位补码表示负数
+                mask = (1 << 32) - 1  # 0xFFFFFFFF
+                unsigned_value = value & mask
+                bin_str = bin(unsigned_value)[2:].zfill(32)
+            else:
+                # 正数也限制在32位内
+                if value >= (1 << 32):
+                    value = value & ((1 << 32) - 1)
+                bin_str = bin(value)[2:].zfill(bits)
+            
+            # 确保长度是4的倍数
+            rem = len(bin_str) % 4
+            if rem:
+                bin_str = '0' * (4 - rem) + bin_str
+            
+            # 4位分组
+            groups = [bin_str[i:i+4] for i in range(0, len(bin_str), 4)]
+            
+            # 返回：二进制字符串（32位补码），预览显示原始有符号值
+            return ' '.join(groups), f"DEC: {signed_value}"
+            
+        except Exception:
+            return "Error", ""
+    
+    def convert_binary_preview(self, bin_str: str) -> str:
+        """二进制预览"""
+        clean = ''.join(c for c in bin_str if c in '01')
+        return f"DEC: {int(clean, 2)}" if clean else ""
