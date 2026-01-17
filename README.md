@@ -1,4 +1,4 @@
-# Demo Simple Calculator
+# Simple Calculator
 
 一个基于 Python `customtkinter` 构建的现代风格多功能计算器。
 
