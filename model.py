@@ -170,14 +170,3 @@ class CalculatorModel:
             return bitwise_funcs[func_name](args[0], args[1])
         
         raise ValueError(f"not support: {type(node).__name__}")
-
-    def convert_binary_preview(self, bin_str: str) -> str:
-        """二进制预览"""
-        if not bin_str:
-            return ""
-        try:
-            clean_bin = bin_str.replace(' ', '')
-            decimal = int(clean_bin, 2)
-            return f"DEC: {decimal}"
-        except:
-            return ""
