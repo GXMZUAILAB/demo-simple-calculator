@@ -1,10 +1,12 @@
+import re
+
 class CalculatorController:
     def __init__(self, model, view):
         self.model = model
         self.view = view
         
         # 应用状态
-        self.mode = "Standard" # "Standard" or "Programmer"
+        self.mode = "Standard" # "Standard" or "Programmer" or "Time"
         self.last_expression = None  # 存储上一次的表达式
         self.is_result_displayed = False  # 标记是否正在显示结果
 
@@ -21,7 +23,7 @@ class CalculatorController:
             self.view.setup_standard_buttons()
         elif new_mode_name == "程序员":
             self.mode = "Programmer"
-            self.view.resize_window(500, 520)
+            self.view.resize_window(340, 520)
             self.view.setup_programmer_buttons()
         else:  # 时间模式
             self.mode = "Time"
@@ -32,7 +34,6 @@ class CalculatorController:
         """处理所有按钮点击（按 '=' 时读取输入框内容计算）"""
         # 读取当前输入框内容（支持直接键盘输入或按钮输入）
         current = self.view.entry.get()
-
         # 错误状态重置
         if "Error" in current or "哈哈哈" in current:
             self.view.update_display("0", "")

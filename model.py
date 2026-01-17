@@ -6,6 +6,12 @@ import sys
 
 class CalculatorModel:
     def __init__(self):
+        self._operators = {
+            ast.Add: operator.add,
+            ast.Sub: operator.sub, 
+            ast.Mult: operator.mul,
+            ast.Div: operator.truediv,
+        }
         # 支持的二元运算符映射
         self._bin_ops = {
             ast.Add: operator.add,
@@ -17,6 +23,12 @@ class CalculatorModel:
         self._unary_ops = {
             ast.UAdd: operator.pos,
             ast.USub: operator.neg,
+            ast.BitAnd: operator.and_,
+            ast.BitOr: operator.or_,
+            ast.BitXor: operator.xor,
+            ast.LShift: operator.lshift,
+            ast.RShift: operator.rshift,
+            ast.Invert: lambda x: ~x,
         }
         # 存储最后一次的运算信息，用于重复运算
         self.last_operand = None  # 最后一个操作数
@@ -196,5 +208,5 @@ class CalculatorModel:
                     display_text = str(result)
             else:
                 display_text = str(result)
-        
+
         return display_text, sub_text
