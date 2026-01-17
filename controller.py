@@ -130,16 +130,24 @@ class CalculatorController:
             if current[-1] in "+-*/":
                 return
 
-        # 2. 程序员模式禁用特定字符
+        # 2. 模式特定的字符限制
         if self.mode == "Programmer" and char in ["."]:
-            return
-
-        # 2.5 时间模式禁用特定字符
+            return  # 程序员模式禁用小数点
+        
         if self.mode == "Time" and char in ["+-*/"]:
-            return
+            return  # 时间模式禁用运算符
 
-        # 3. 将字符追加到输入框（如果当前为 "0" 则替换）
-        if current == "0":
+        # 3. 将字符追加到输入框（简单实用版方案）
+        if self.mode == "Programmer" and char in "01":
+            # 程序员模式下输入0或1
+            if current == "0" and char == "1":
+                # 特殊情况：从0变为1
+                new_text = "1"
+            else:
+                # 其他情况：正常追加（包括从0开始输入多个0）
+                new_text = current + str(char)
+        elif current == "0":
+            # 其他模式或其他字符，如果当前是"0"，替换它
             new_text = str(char)
         else:
             new_text = current + str(char)
