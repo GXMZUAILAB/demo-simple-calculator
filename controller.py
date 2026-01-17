@@ -159,7 +159,7 @@ class CalculatorController:
         
         # 使用正则表达式匹配最后一个运算符和其后的操作数
         # 模式：(数字或小数) (运算符) (数字或小数)
-        match = re.search(r'([\d.]+)\s*([+\-*/])\s*([\d.]+)$', expression)
+        match = re.search(r'([\d.]+)\s*([+\-*/]|<<|>>)\s*([\d.]+)$', expression)
         
         if match:
             # 提取最后的操作数和运算符
